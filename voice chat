@@ -1,1 +1,36 @@
+pip install transformers
+pip install SpeechRecognition
+import speech_recognition as sr
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
+# Initialize the GPT-3.5 model and tokenizer
+model_name = "EleutherAI/gpt-neo-1.3B"
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained(model_name)
+
+# Initialize the SpeechRecognition recognizer
+recognizer = sr.Recognizer()
+
+def transcribe_audio():
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+
+    try:
+        # Use Google Web Speech API to transcribe audio to text
+        text = recognizer.recognize_google(audio)
+        return text
+    except sr.UnknownValueError:
+        print("Could not understand audio.")
+    except sr.RequestError as e:
+        print(f"Could not request results; {e}")
+    return None
+
+while True:
+    voice_input = transcribe_audio()
+    if voice_input:
+        input_ids = tokenizer.encode(voice_input, return_tensors="pt")
+        response = model.generate(input_ids, max_length=50, num_return_sequences=1)
+        chat_response = tokenizer.decode(response[0], skip_special_tokens=True)
+        print(f"User: {voice_input}")
+        print(f"ChatGPT: {chat_response}")
